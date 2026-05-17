@@ -271,6 +271,8 @@
 
   /* Loading */
   .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+  .period-btn { background:none;border:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all 0.15s; }
+  .period-btn.active,.period-btn:hover { background:var(--bg4);color:var(--text); }
 
   @media (max-width: 900px) {
     .kpi-grid { grid-template-columns: 1fr 1fr; }
@@ -520,17 +522,76 @@
 
   <!-- HISTÓRICO -->
   <div class="view" id="view-historico">
+
+    <!-- FILTROS -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;">
+        <button class="period-btn active" onclick="setPeriod('7',this)">7 dias</button>
+        <button class="period-btn" onclick="setPeriod('30',this)">30 dias</button>
+        <button class="period-btn" onclick="setPeriod('90',this)">90 dias</button>
+        <button class="period-btn" onclick="setPeriod('custom',this)">Personalizado</button>
+      </div>
+      <div id="custom-range" style="display:none;gap:6px;align-items:center;display:none;">
+        <input type="date" class="finput" id="hist-de" style="padding:5px 10px;font-size:11px;width:auto;" onchange="loadHistorico()">
+        <span style="color:var(--text2);font-size:12px;">até</span>
+        <input type="date" class="finput" id="hist-ate" style="padding:5px 10px;font-size:11px;width:auto;" onchange="loadHistorico()">
+      </div>
+      <select class="fselect" style="width:auto;padding:6px 12px;font-size:12px;" id="hist-serv" onchange="loadHistorico()">
+        <option value="">Todos os serviços</option>
+        <option>Monitoramento</option><option>Rondas Virtuais</option>
+        <option>Seguro</option><option>Energia</option>
+      </select>
+      <select class="fselect" style="width:auto;padding:6px 12px;font-size:12px;display:none;" id="hist-op-filter" onchange="loadHistorico()">
+        <option value="">Todos os operadores</option>
+      </select>
+    </div>
+
+    <!-- KPIs RESUMO -->
+    <div style="display:none;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;" id="hist-kpis">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Total de vendas</div>
+        <div id="hk-total" style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:var(--text);">0</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Receita mensal</div>
+        <div id="hk-receita" style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:#1DB87A;">R$ 0</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Ticket médio</div>
+        <div id="hk-ticket" style="font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:var(--orange);">R$ 0</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Melhor operador</div>
+        <div id="hk-top" style="font-family:'DM Sans',monospace;font-size:18px;font-weight:500;color:var(--text);margin-top:4px;">—</div>
+      </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div id="hist-graficos" style="display:none;">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Vendas por dia</div>
+        <canvas id="chart-linha" height="110"></canvas>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Mix de serviços</div>
+        <canvas id="chart-pizza" height="160"></canvas>
+        <div id="chart-pizza-legend" style="margin-top:12px;display:flex;flex-direction:column;gap:4px;"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Ranking de operadores</div>
+      <div id="chart-ranking" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    </div><!-- /hist-graficos -->
+
+    <!-- LISTA DE VENDAS -->
     <div class="panel">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div class="panel-title" style="margin-bottom:0;">todas as vendas</div>
-        <div style="display:flex;gap:8px;">
-          <select class="fselect" style="width:auto;padding:5px 10px;font-size:11px;" id="hist-serv" onchange="loadHistorico()">
-            <option value="">Todos os serviços</option>
-            <option>Monitoramento</option><option>Rondas Virtuais</option>
-            <option>Seguro</option><option>Energia</option>
-          </select>
-          <input type="date" class="finput" style="width:auto;padding:5px 10px;font-size:11px;" id="hist-date" onchange="loadHistorico()">
-        </div>
+        <span id="hist-count" style="font-size:11px;color:var(--text2);"></span>
       </div>
       <div id="hist-list"><div class="loading">Carregando...</div></div>
     </div>
@@ -1249,20 +1310,164 @@ async function submitVenda() {
 }
 
 // ---- HISTÓRICO ----
+let chartLinha = null, chartPizza = null;
+let histPeriod = '7';
+
+function setPeriod(p, btn) {
+  histPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cr = document.getElementById('custom-range');
+  cr.style.display = p === 'custom' ? 'flex' : 'none';
+  if (p !== 'custom') loadHistorico();
+}
+
 async function loadHistorico() {
-  const serv = document.getElementById('hist-serv').value;
-  const date = document.getElementById('hist-date').value;
-  let q = sb.from('vendas').select(`*, operadores(nome)`).eq('status','ativa').order('criado_em',{ascending:false}).limit(100);
-  if (currentOp?.papel === 'operador') q = q.eq('operador_id', currentOp.id);
-  if (serv) q = q.eq('servico', serv);
-  if (date) q = q.eq('data_venda', date);
+  const isGestor = currentOp?.papel === 'gestor' || currentOp?.papel === 'admin';
+
+  // Mostrar/esconder elementos exclusivos do gestor
+  document.getElementById('hist-kpis').style.display = isGestor ? 'grid' : 'none';
+  document.getElementById('hist-graficos').style.display = isGestor ? 'block' : 'none';
+  document.getElementById('hist-op-filter').style.display = isGestor ? 'inline-block' : 'none';
+
+  // Popula filtro de operadores (gestor)
+  const opSel = document.getElementById('hist-op-filter');
+  if (isGestor && opSel.options.length <= 1) {
+    const { data: ops } = await sb.from('operadores').select('id,nome').eq('ativo',true).order('nome');
+    opSel.innerHTML = '<option value="">Todos os operadores</option>' + (ops||[]).map(o=>`<option value="${o.id}">${o.nome}</option>`).join('');
+  }
+
+  // Datas
+  let de, ate;
+  const hoje = new Date();
+  if (histPeriod === 'custom') {
+    de  = document.getElementById('hist-de').value;
+    ate = document.getElementById('hist-ate').value;
+    if (!de || !ate) return;
+  } else {
+    const dias = parseInt(histPeriod);
+    const inicio = new Date(hoje); inicio.setDate(inicio.getDate() - dias + 1);
+    de  = inicio.toISOString().split('T')[0];
+    ate = hoje.toISOString().split('T')[0];
+  }
+
+  const serv  = document.getElementById('hist-serv').value;
+  const opFil = document.getElementById('hist-op-filter').value;
+
+  let q = sb.from('vendas').select('*, operadores(nome,id)')
+    .eq('status','ativa')
+    .gte('data_venda', de)
+    .lte('data_venda', ate)
+    .order('data_venda', {ascending:false})
+    .limit(500);
+  if (!isGestor) q = q.eq('operador_id', currentOp.id);
+  if (serv)  q = q.eq('servico', serv);
+  if (opFil) q = q.eq('operador_id', opFil);
+
   const { data } = await q;
+  const vendas = data || [];
+
+  // KPIs
+  const total   = vendas.length;
+  const receita = vendas.reduce((s,v)=>s+Number(v.valor_mensal||0),0);
+  const ticket  = total ? receita/total : 0;
+  document.getElementById('hk-total').textContent = total;
+  document.getElementById('hk-receita').textContent = 'R$ ' + receita.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  document.getElementById('hk-ticket').textContent  = 'R$ ' + ticket.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Top operador
+  const porOp = {};
+  vendas.forEach(v => {
+    const n = v.operadores?.nome || '—';
+    porOp[n] = (porOp[n]||0)+1;
+  });
+  const topOp = Object.entries(porOp).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('hk-top').textContent = topOp ? `${topOp[0].split(' ')[0]} (${topOp[1]})` : '—';
+
+  // Gráfico de linha — vendas por dia
+  const diasMap = {};
+  vendas.forEach(v => { diasMap[v.data_venda] = (diasMap[v.data_venda]||0)+1; });
+  const allDias = [];
+  const cur = new Date(de);
+  const fim = new Date(ate);
+  while (cur <= fim) { allDias.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate()+1); }
+  const linhaLabels = allDias.map(d => { const [,m,dia] = d.split('-'); return `${dia}/${m}`; });
+  const linhaData   = allDias.map(d => diasMap[d]||0);
+
+  if (chartLinha) chartLinha.destroy();
+  const ctxL = document.getElementById('chart-linha').getContext('2d');
+  chartLinha = new Chart(ctxL, {
+    type: 'line',
+    data: {
+      labels: linhaLabels,
+      datasets: [{
+        data: linhaData,
+        borderColor: '#F58220',
+        backgroundColor: 'rgba(245,130,32,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: '#F58220',
+        pointRadius: 3,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#5C6B8A', font:{size:10}, maxTicksLimit:12 } },
+        y: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#5C6B8A', font:{size:10}, stepSize:1 }, beginAtZero:true }
+      }
+    }
+  });
+
+  // Gráfico pizza — mix de serviços
+  const SERV_COLORS = { 'Monitoramento':'#1A4FBF','Rondas Virtuais':'#1DB87A','Seguro':'#F58220','Energia':'#E84D7F' };
+  const servMap = { 'Monitoramento':0,'Rondas Virtuais':0,'Seguro':0,'Energia':0 };
+  vendas.forEach(v => { if (servMap[v.servico]!==undefined) servMap[v.servico]++; });
+  const pizzaLabels = Object.keys(servMap).filter(k=>servMap[k]>0);
+  const pizzaData   = pizzaLabels.map(k=>servMap[k]);
+  const pizzaColors = pizzaLabels.map(k=>SERV_COLORS[k]);
+
+  if (chartPizza) chartPizza.destroy();
+  const ctxP = document.getElementById('chart-pizza').getContext('2d');
+  chartPizza = new Chart(ctxP, {
+    type: 'doughnut',
+    data: { labels: pizzaLabels, datasets: [{ data: pizzaData, backgroundColor: pizzaColors, borderWidth: 0, hoverOffset: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '65%',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${c.label}: ${c.raw} venda(s)` } } }
+    }
+  });
+  document.getElementById('chart-pizza-legend').innerHTML = pizzaLabels.map((l,i)=>
+    `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);">
+      <span style="width:8px;height:8px;border-radius:2px;background:${pizzaColors[i]};flex-shrink:0;"></span>
+      <span>${l}</span><span style="margin-left:auto;color:var(--text);font-weight:500;">${pizzaData[i]}</span>
+    </div>`
+  ).join('');
+
+  // Ranking de operadores
+  const rankEl = document.getElementById('chart-ranking');
+  const rankArr = Object.entries(porOp).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxVendas = rankArr[0]?.[1] || 1;
+  const OP_COLORS = ['#1A4FBF','#1DB87A','#F58220','#E84D7F','#9B59B6','#1ABC9C','#E67E22','#E74C3C'];
+  rankEl.innerHTML = rankArr.length ? rankArr.map(([nome,qtd],i)=>`
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:22px;font-size:11px;color:var(--text2);text-align:right;flex-shrink:0;">${i+1}º</div>
+      <div style="font-size:12px;color:var(--text);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nome}</div>
+      <div style="flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="height:100%;border-radius:4px;background:${OP_COLORS[i%OP_COLORS.length]};width:${Math.round(qtd/maxVendas*100)}%;transition:width 0.6s;"></div>
+      </div>
+      <div style="font-size:12px;font-weight:500;color:var(--text);width:28px;text-align:right;flex-shrink:0;">${qtd}</div>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--text2);">Sem dados no período.</div>';
+
+  // Lista de vendas
+  document.getElementById('hist-count').textContent = `${total} venda(s)`;
   const el = document.getElementById('hist-list');
-  if (!data?.length) { el.innerHTML='<div style="font-size:12px;color:var(--text2);padding:20px 0;text-align:center;">Nenhuma venda encontrada.</div>'; return; }
-  el.innerHTML = data.map(v => {
+  if (!vendas.length) { el.innerHTML='<div style="font-size:12px;color:var(--text2);padding:20px 0;text-align:center;">Nenhuma venda encontrada.</div>'; return; }
+  el.innerHTML = vendas.map(v => {
     const nm = v.operadores?.nome || '—';
     const c = opColor(0);
-    const isGestor = currentOp?.papel === 'gestor' || currentOp?.papel === 'admin';
     return `<div class="feed-item">
       <div class="feed-av" style="background:${opBg(c)};color:${c};">${initials(nm)}</div>
       <div class="feed-info">
@@ -1391,7 +1596,13 @@ function switchTab(name, btn) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('view-'+name).classList.add('active');
-  if (name==='historico') loadHistorico();
+  if (name==='historico') {
+    const isG = currentOp?.papel === 'gestor' || currentOp?.papel === 'admin';
+    document.getElementById('hist-kpis').style.display = isG ? 'grid' : 'none';
+    document.getElementById('hist-graficos').style.display = isG ? 'block' : 'none';
+    document.getElementById('hist-op-filter').style.display = isG ? 'inline-block' : 'none';
+    loadHistorico();
+  }
   if (name==='gestao') loadGestao();
   if (name==='nova') loadFunil();
   if (name==='comissoes') initComissoes();
